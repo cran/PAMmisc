@@ -1,3 +1,15 @@
+# PAMmisc 1.6.5
+
+* Bug fixes for `updateUID`. Will check for "ClickNo" column first if that is more accurate,
+and will not update a UID if it is matching based on time and there is more than one match
+
+* Changed database testing to work on copied file in tmpdir for CRAN checks
+
+# PAMmisc 1.6.4
+
+* Added `updateUID` function to try and realign UID mismatches in Pamguard databases
+between event detections and their corresponding binary files
+
 # PAMmisc 1.6.3
 
 * Changed `addPgGps` to use `parse_date_time` for date conversions to allow
