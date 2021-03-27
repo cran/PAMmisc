@@ -28,7 +28,7 @@
 #' }
 #' @importFrom RSQLite dbConnect SQLite dbListTables dbReadTable dbDisconnect dbAppendTable dbSendQuery dbClearResult
 #' @importFrom PamBinaries loadPamguardBinaryFile convertPgDate
-#' @importFrom dplyr bind_rows select
+#' @importFrom dplyr bind_rows select setdiff
 #'
 #' @export
 #'
@@ -58,8 +58,11 @@ addPgEvent <- function(db, UIDs, binary, eventType, comment = NA, tableName = NU
         evId <- 1
         evUID <- 1
     } else {
-        evId <- max(eventData$Id) + 1
-        evUID <- max(eventData$UID) + 1
+
+        evId <- max(eventData$Id, na.rm=TRUE) + 1
+        evUID <- max(eventData$UID, na.rm=TRUE) + 1
+
+        eventData$eventType <- gsub(' ', '', eventData$eventType)
     }
 
     clickData <- dbReadTable(con, clickTableName)
@@ -110,8 +113,18 @@ addPgEvent <- function(db, UIDs, binary, eventType, comment = NA, tableName = NU
     eventAppend$eventType <- eventType
     eventAppend$comment <- comment
 
-    dbAppendTable(con, clickTableName, allAppend)
-    dbAppendTable(con, eventTableName, eventAppend)
+    # clickData$Id <- NA
+    # eventData$Id <- NA
+
+    # dbAppendTable(con, clickTableName, allAppend)
+    if(nrow(eventData) == 0 ||
+       nrow(setdiff(eventAppend[c('UTC', 'UTCMilliseconds', 'EventEnd', 'eventType')],
+               eventData[c('UTC', 'UTCMilliseconds', 'EventEnd', 'eventType')])) > 0) {
+        dbAppendTable(con, clickTableName, allAppend)
+        dbAppendTable(con, eventTableName, eventAppend)
+    } else {
+        return(FALSE)
+    }
 
     # Add eventType to Lookup table if it isnt there, also create Lookup if not there
     if(!('Lookup' %in% tableList)) {
@@ -139,8 +152,8 @@ addPgEvent <- function(db, UIDs, binary, eventType, comment = NA, tableName = NU
         lookAppend$Id <- 1
         lookAppend$DisplayOrder <- 10
     } else {
-        lookAppend$Id <- max(lookup$Id) + 1
-        lookAppend$DisplayOrder <- max(lookup$DisplayOrder) + 10
+        lookAppend$Id <- max(lookup$Id, na.rm=TRUE) + 1
+        lookAppend$DisplayOrder <- max(lookup$DisplayOrder, na.rm=TRUE) + 10
     }
     lookAppend$Topic <- 'OfflineRCEvents'
     lookAppend$Code <- eventType
@@ -153,5 +166,86 @@ addPgEvent <- function(db, UIDs, binary, eventType, comment = NA, tableName = NU
     invisible(TRUE)
 }
 
+createClickTables <- function(con) {
+    # dbCreateTable(con, 'gpsData', GPSDF) then dbAppendTable(con, 'gpsData', GPSDF)
+    # is sort of an option if we convert UTC to character first
+    clickTbl <- dbSendQuery(con,
+                       "CREATE TABLE Click_Detector_OfflineClicks
+            (Id INTEGER,
+            UID BIGINT,
+            UTC TIMESTAMP,
+            UTCMilliseconds INTEGER,
+            PCLocalTime CHARACTER(50),
+            PCTime CHARACTER(50),
+            ChannelBitmap INTEGER,
+            SequenceBitmap INTEGER,
+            parentID INTEGER,
+            parentUID INTEGER,
+            LongDataName CHARACTER(80),
+            BinaryFile CHARACTER(80),
+            EventId INTEGER,
+            ClickNo INTEGER,
+            Amplitude DOUBLE,
+            Channels INTEGER,
+            PRIMARY KEY (Id))")
+    on.exit(dbClearResult(clickTbl), add=TRUE, after=FALSE)
+    eventTbl <- dbSendQuery(con,
+                       "CREATE TABLE Click_Detector_OfflineEvents
+            (Id INTEGER,
+            UID BIGINT,
+            UTC TIMESTAMP,
+            UTCMilliseconds INTEGER,
+            PCLocalTime CHARACTER(50),
+            PCTime CHARACTER(50),
+            ChannelBitmap INTEGER,
+            SequenceBitmap INTEGER,
+            EventEnd TIMESTAMP,
+            eventType CHAR(12),
+            nClicks INTEGER,
+            minNumber SMALLINT,
+            bestNumber SMALLINT,
+            maxNumber SMALLINT,
+            colour SMALLINT,
+            comment CHAR(80),
+            channels INTEGER,
+            TMModelName1 CHAR(30),
+            TMLatitude1 DOUBLE,
+            TMLongitude1 DOUBLE,
+            BeamLatitude1 DOUBLE,
+            BeamLongitude1 DOUBLE,
+            BeamTime1 TIMESTAMP,
+            TMSide1 INTEGER,
+            TMChi21 DOUBLE,
+            TMAIC1 DOUBLE,
+            TMProbability1 DOUBLE,
+            TMDegsFreedom1 INTEGER,
+            TMPerpendicularDistance1 DOUBLE,
+            TMPerpendicularDistanceError1 DOUBLE,
+            TMDepth1 DOUBLE,
+            TMDepthError1 DOUBLE,
+            TMHydrophones1 INTEGER,
+            TMError1 CHAR(128),
+            TMComment1 CHAR(80),
+            TMLatitude2 DOUBLE,
+            TMLongitude2 DOUBLE,
+            BeamLatitude2 DOUBLE,
+            BeamLongitude2 DOUBLE,
+            BeamTime2 TIMESTAMP,
+            TMSide2 INTEGER,
+            TMChi22 DOUBLE,
+            TMAIC2 DOUBLE,
+            TMProbability2 DOUBLE,
+            TMDegsFreedom2 INTEGER,
+            TMPerpendicularDistance2 DOUBLE,
+            TMPerpendicularDistanceError2 DOUBLE,
+            TMDepth2 DOUBLE,
+            TMDepthError2 DOUBLE,
+            TMHydrophones2 INTEGER,
+            TMError2 CHAR(128),
+            TMComment2 CHAR(80),
+            PRIMARY KEY (Id))")
+    on.exit(dbClearResult(eventTbl), add=TRUE, after=FALSE)
+    
+}
 # Loop through all binary files until all UIDs are found. Warn if UIDs not found.
 # Dont like update option - should be add only, not modify/delete

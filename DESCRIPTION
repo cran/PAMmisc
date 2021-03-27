@@ -1,6 +1,6 @@
 Package: PAMmisc
 Title: Miscellaneous Functions for Passive Acoustic Analysis
-Version: 1.6.5
+Version: 1.6.8
 Authors@R: c(
   TS = person("Taiki", "Sakai", email = "taiki.sakai@noaa.gov", role = c("aut", "cre")),
   JB = person("Jay", "Barlow", role = c("ctb")),
@@ -14,14 +14,15 @@ LazyData: true
 RoxygenNote: 7.1.1
 Imports: ggplot2, tuneR, seewave, dplyr, magrittr, RcppRoll,
         PamBinaries, RSQLite, lubridate, rerddap, ncdf4, httr, purrr,
-        plotKML, hoardr, methods, geosphere, tcltk, stringr
+        plotKML, hoardr, methods, geosphere, tcltk, stringr,
+        viridisLite
 Suggests: testthat
 NeedsCompilation: no
-Packaged: 2020-10-28 17:45:05 UTC; Taiki.Sakai
+Packaged: 2021-03-23 16:32:47 UTC; tnsak
 Author: Taiki Sakai [aut, cre],
   Jay Barlow [ctb],
   Julie Oswald [ctb]
 Maintainer: Taiki Sakai <taiki.sakai@noaa.gov>
 Depends: R (>= 3.5.0)
 Repository: CRAN
-Date/Publication: 2020-10-28 21:10:17 UTC
+Date/Publication: 2021-03-27 08:40:38 UTC

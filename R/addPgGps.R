@@ -90,7 +90,7 @@ addPgGps <- function(db, gps, source = c('SPOTcsv', 'SPOTgpx', 'csv'), format = 
     if(nrow(dbGps) == 0) {
         newIds <- 1:nrow(gps)
     } else {
-        newIds <- 1:nrow(gps) + max(dbGps$Id)
+        newIds <- 1:nrow(gps) + max(dbGps$Id, na.rm=TRUE)
     }
     timeChar <- as.character(gps$UTC)
     milliChar <- sprintf('%.3f', as.numeric(gps$UTC) - floor(as.numeric(gps$UTC)))
@@ -111,7 +111,7 @@ addPgGps <- function(db, gps, source = c('SPOTcsv', 'SPOTgpx', 'csv'), format = 
 fmtGps <- function(x, source, format, tz) {
     if(is.character(x)) {
         if(!file.exists(x)) {
-            stop('Could not find GPS file', x, call. = FALSE)
+            stop('Could not find GPS file ', x, call. = FALSE)
         }
         # if file switch for differnt read types
         switch(source,
