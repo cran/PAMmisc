@@ -27,7 +27,7 @@
 #' addPgEvent(db = myDb, UIDs = addUIDs, binary = myBinaries, eventType = 'MyNewEvent')
 #' }
 #' @importFrom RSQLite dbConnect SQLite dbListTables dbReadTable dbDisconnect dbAppendTable dbSendQuery dbClearResult
-#' @importFrom PamBinaries loadPamguardBinaryFile convertPgDate
+#' @importFrom PamBinaries loadPamguardBinaryFile convertPgDate pbToDf
 #' @importFrom dplyr bind_rows select setdiff
 #'
 #' @export
@@ -57,12 +57,13 @@ addPgEvent <- function(db, UIDs, binary, eventType, comment = NA, tableName = NU
     if(nrow(eventData) == 0) {
         evId <- 1
         evUID <- 1
+        evColor <- 0
     } else {
 
         evId <- max(eventData$Id, na.rm=TRUE) + 1
         evUID <- max(eventData$UID, na.rm=TRUE) + 1
-
-        eventData$eventType <- gsub(' ', '', eventData$eventType)
+        evColor <- (eventData$colour[nrow(eventData)] + 1) %% 13 
+        eventData$eventType <- str_trim(eventData$eventType)
     }
 
     clickData <- dbReadTable(con, clickTableName)
@@ -74,8 +75,9 @@ addPgEvent <- function(db, UIDs, binary, eventType, comment = NA, tableName = NU
     for(bin in binary) {
         if(length(UIDsToAdd) == 0) break
         binData <- loadPamguardBinaryFile(bin, skipLarge=TRUE, keepUIDs = UIDsToAdd)
-        binDf <- data.frame(binData)
-        if(nrow(binDf) == 0) next
+        binDf <- pbToDf(binData)
+        if(is.null(binDf) ||
+           nrow(binDf) == 0) next
         UIDsToAdd <- UIDsToAdd[!(UIDsToAdd %in% binDf$UID)]
         binDf$millis <- binDf$millis - floor(binDf$date) * 1e3
         binDf$dbDate <- paste0(as.character(convertPgDate(binDf$date)), '.',
@@ -112,6 +114,8 @@ addPgEvent <- function(db, UIDs, binary, eventType, comment = NA, tableName = NU
     eventAppend$nClicks <- nrow(allAppend)
     eventAppend$eventType <- eventType
     eventAppend$comment <- comment
+    
+    eventAppend$colour <- evColor
 
     # clickData$Id <- NA
     # eventData$Id <- NA
@@ -143,7 +147,7 @@ addPgEvent <- function(db, UIDs, binary, eventType, comment = NA, tableName = NU
         on.exit(dbClearResult(tbl), add=TRUE, after=FALSE)
     }
     lookup <- dbReadTable(con, 'Lookup')
-    if(eventType %in% gsub(' ', '', lookup$Code)) {
+    if(eventType %in% str_trim(lookup$Code)) {
         return(invisible(TRUE)) # dont need to add, just exit
     }
     lookAppend <- lookup[FALSE, ]

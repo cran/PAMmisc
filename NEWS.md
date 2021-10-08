@@ -1,3 +1,31 @@
+# PAMmisc 1.7.0
+
+* Added `raytrace` function based on MATLAB code by Val Schmidt
+
+* Updating `matchEnvData` and associated functions to work with provided
+Depth values instead of only being able to return all Depth values if a 
+Z dimension is present
+
+* `squishList` works with matrices
+
+* Added `readGPXTrack` to remove dependency on `plotKML::readGPX`
+
+# PAMmisc 1.6.12
+
+* `wignerTransform` plotting now uses option `useRaster = TRUE`
+
+# PAMmisc 1.6.11
+
+* `addPgEvent` fixed issue with repeated Lookup codes and added colours
+
+# PAMmisc 1.6.10
+
+* `addPgEvent` fixed potential issue with reading empty binaries
+
+# PAMmisc 1.6.9
+
+* `squishList` no longer breaks on `data.table` objects
+
 # PAMmisc 1.6.8
 
 * `peakTrough` ignores first and last frequencies for possible peaks
