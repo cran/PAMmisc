@@ -1,3 +1,7 @@
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/TaikiSan21/PAMmisc/workflows/R-CMD-check/badge.svg)](https://github.com/TaikiSan21/PAMmisc/actions)
+<!-- badges: end -->
+
 # PAMmisc
 
 PAMmisc is a collection of random utility functions that might be useful
@@ -12,8 +16,6 @@ Install the latest version from GitHub:
 # make sure you have Rtools installed
 if(!require('devtools')) install.packages('devtools')
 # install from GitHub
-# PamBinaries must be installed first because it is not yet on CRAN
-devtools::install_github('TaikiSan21/PamBinaries')
 devtools::install_github('TaikiSan21/PAMmisc')
 
 ```
