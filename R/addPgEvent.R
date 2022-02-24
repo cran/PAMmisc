@@ -29,6 +29,7 @@
 #' @importFrom RSQLite dbConnect SQLite dbListTables dbReadTable dbDisconnect dbAppendTable dbSendQuery dbClearResult
 #' @importFrom PamBinaries loadPamguardBinaryFile convertPgDate pbToDf
 #' @importFrom dplyr bind_rows select setdiff
+#' @importFrom utils packageVersion
 #'
 #' @export
 #'
@@ -62,15 +63,17 @@ addPgEvent <- function(db, UIDs, binary, eventType, comment = NA, tableName = NU
 
         evId <- max(eventData$Id, na.rm=TRUE) + 1
         evUID <- max(eventData$UID, na.rm=TRUE) + 1
-        evColor <- (eventData$colour[nrow(eventData)] + 1) %% 13 
+        evColor <- (eventData$colour[nrow(eventData)] + 1) %% 13
         eventData$eventType <- str_trim(eventData$eventType)
     }
 
     clickData <- dbReadTable(con, clickTableName)
-
+    chanCols <- c('ChannelBitmap', 'Channels')
+    chanCols <- chanCols[chanCols %in% colnames(clickData)]
     UIDs <- sort(UIDs)
     UIDsToAdd <- UIDs
     allAppend <- vector('list', length = length(binary))
+    addTime <- as.character(nowUTC())
     names(allAppend) <- binary
     for(bin in binary) {
         if(length(UIDsToAdd) == 0) break
@@ -87,15 +90,21 @@ addPgEvent <- function(db, UIDs, binary, eventType, comment = NA, tableName = NU
         clickAppend$ClickNo <- binDf$UID - floor(binDf$UID / 1e5) * 1e5 - 1 # java index start at 0
         clickAppend$UTC <- binDf$dbDate
         clickAppend$UTCMilliseconds <- binDf$millis
+        clickAppend$PCLocalTime <- clickAppend$UTC
+        clickAppend$PCTime <- addTime
         clickAppend$UID <- binDf$UID
         clickAppend$parentID <- evId
         clickAppend$parentUID <- evUID
         clickAppend$EventId <- evId
         clickAppend$BinaryFile <- basename(bin)
+        for(c in chanCols) {
+            clickAppend[[c]] <- binDf$channelMap
+        }
         clickAppend$LongDataName <- switch(
             binData$fileInfo$fileHeader$moduleType,
             'Click Detector' = paste0(binData$fileInfo$fileHeader$moduleName, ', ', binData$fileInfo$fileHeader$streamName),
-            'WhistlesMoans' = paste0(binData$fileInfo$fileHeader$moduleName, c(', ', ' Contours'), collapse = '')
+            'WhistlesMoans' = paste0(binData$fileInfo$fileHeader$moduleName, c(', ', ' Contours'), collapse = ''),
+            'GPL Detector' = paste0(binData$fileInfo$fileHeader$moduleName, c(', ', ' Detections'), collapse = '')
         )
         clickAppend$TEMPTIME <- binDf$date
         allAppend[[bin]] <- clickAppend
@@ -105,16 +114,26 @@ addPgEvent <- function(db, UIDs, binary, eventType, comment = NA, tableName = NU
                 ' in binary files.')
     }
     allAppend <- bind_rows(allAppend)
+    chanCols <- c('ChannelBitmap', 'channels')
+    chanCols <- chanCols[chanCols %in% colnames(eventAppend)]
     eventAppend$Id <- evId
     eventAppend$UID <- evUID
     eventAppend$UTC <- allAppend$UTC[which.min(allAppend$TEMPTIME)]
+    eventAppend$PCLocalTime <- eventAppend$UTC
+    eventAppend$PCTime <- addTime
     eventAppend$EventEnd <- allAppend$UTC[which.max(allAppend$TEMPTIME)]
     eventAppend$UTCMilliseconds <- allAppend$UTCMilliseconds[which.min(allAppend$TEMPTIME)]
     allAppend['TEMPTIME'] <- NULL
     eventAppend$nClicks <- nrow(allAppend)
     eventAppend$eventType <- eventType
+    for(c in chanCols) {
+        eventAppend[[c]] <- unique(clickAppend$ChannelBitmap)[1]
+    }
+    if(is.na(comment)) {
+        comment <- paste0('Created by PAMmisc v', packageVersion('PAMmisc'))
+    }
     eventAppend$comment <- comment
-    
+
     eventAppend$colour <- evColor
 
     # clickData$Id <- NA
@@ -144,7 +163,7 @@ addPgEvent <- function(db, UIDs, binary, eventType, comment = NA, tableName = NU
             BorderColour CHARACTER(20),
             Symbol CHARACTER(2),
             PRIMARY KEY (Id))")
-        on.exit(dbClearResult(tbl), add=TRUE, after=FALSE)
+        dbClearResult(tbl)
     }
     lookup <- dbReadTable(con, 'Lookup')
     if(eventType %in% str_trim(lookup$Code)) {
@@ -192,7 +211,7 @@ createClickTables <- function(con) {
             Amplitude DOUBLE,
             Channels INTEGER,
             PRIMARY KEY (Id))")
-    on.exit(dbClearResult(clickTbl), add=TRUE, after=FALSE)
+    dbClearResult(clickTbl)
     eventTbl <- dbSendQuery(con,
                        "CREATE TABLE Click_Detector_OfflineEvents
             (Id INTEGER,
@@ -249,7 +268,7 @@ createClickTables <- function(con) {
             TMComment2 CHAR(80),
             PRIMARY KEY (Id))")
     on.exit(dbClearResult(eventTbl), add=TRUE, after=FALSE)
-    
+
 }
 # Loop through all binary files until all UIDs are found. Warn if UIDs not found.
 # Dont like update option - should be add only, not modify/delete

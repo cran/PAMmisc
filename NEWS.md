@@ -1,3 +1,28 @@
+# PAMmisc 1.8.3
+
+* `readSpecAnno` adjusted to allow for different table names
+
+* Added option `unique` to `squishList` to try and simplify results to only unique values
+
+# PAMmisc 1.8.2
+
+* Added `readSpecAnno` function to read Spectrogram_Annotation tables
+from PAMGuard databases
+
+# PAMmisc 1.8.1
+
+* Updated `decimateWavFiles` to work with wav files with bit rates different
+than 16 (bugs in `seewave` functions do not pass along bit rate properly)
+
+* Bug fix in `matchEnvData` for datasets that had no `UTC` axis
+
+* Changed defaults in `matchEnvData` and `ncToData` to only calculate `mean`, not
+`median` and `sd`
+
+* `matchEnvData` and `ncToData` have a `depth` parameter you can use to specify
+matching depth values to use. This makes it possibly to specify a range of depths
+to summarise over for a single coordinate (previously only single depth or all)
+
 # PAMmisc 1.8.0
 
 * Reworking of enviro functions to make HYCOM datasets easier to use. Will now
