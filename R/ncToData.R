@@ -108,8 +108,7 @@ ncToData <- function(data, nc, buffer = c(0,0,0), FUN = c(mean),
     if(raw) {
         return(transpose(allVar))
     }
-    # change back to whatever they were using, then add new data
-    colnames(data) <- oldNames
+
     # if its a single function make a list for looping
     if(is.list(FUN) &&
        is.null(names(FUN))) {
@@ -147,6 +146,8 @@ ncToData <- function(data, nc, buffer = c(0,0,0), FUN = c(mean),
         }
     }
     data <- to180(data, inverse=!data180)
+    # change back to whatever they were using
+    colnames(data)[1:length(oldNames)] <- oldNames
     data
 }
 
@@ -183,13 +184,13 @@ getVarData <- function(data, nc, var, buffer, depth=NULL, verbose=TRUE) {
         start <- c(xIx$start, yIx$start)
         count <- c(xIx$count, yIx$count)
         thisVar <- nc[['var']][[v]]
-        hasZ <- 'Depth' %in% names(thisVar$dim)
-        if(hasZ) {
+        thisHasZ <- 'Depth' %in% names(thisVar$dim)
+        if(thisHasZ) {
             start <- c(start, zIx$start)
             count <- c(count, zIx$count)
         }
-        hasT <- 'UTC' %in% names(thisVar$dim)
-        if(hasT) {
+        thisHasT <- 'UTC' %in% names(thisVar$dim)
+        if(thisHasT) {
             start <- c(start, tIx$start)
             count <- c(count, tIx$count)
         }

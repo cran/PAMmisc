@@ -1,3 +1,24 @@
+# PAMmisc 1.9.2
+
+* Fixed a bug where error message in `matchEnvData` could cause R to crash (oh the irony)
+
+* `ncToData` was not behaving well if columns were not `Latitude` and `Longitude`
+
+* `ncToData` also bug if some vars had depth and others did not
+
+* LEV is lev is Depth
+
+# PAMmisc 1.9.1
+
+* Adding `soundtrapQAQC` function
+
+# PAMmisc 1.9.0
+
+* Added `addPgAnno` function to add spectrogram annotations to Pamguard databases
+
+* `addPgEvent` now has a type argument to specify adding Click Detector events vs
+Detection Grouper events
+
 # PAMmisc 1.8.3
 
 * `readSpecAnno` adjusted to allow for different table names

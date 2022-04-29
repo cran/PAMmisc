@@ -19,6 +19,9 @@ ncTimeToPosix <- function(vals, units) {
     if(units == 'posix') {
         return(vals)
     }
+    if(units == 'hours since 1950-01-01') {
+        return(as.POSIXct(vals * 3600, origin = '1950-01-01', tz='UTC'))
+    }
     stop('Dont know how to deal with time with units ', units)
 }
 
@@ -92,7 +95,7 @@ dimToIx <- function(data, dim, buffer=0, verbose=TRUE) {
             warning(warnMsg)
         }
     }
-    list(ix=ix, start=start, count=count, diff=diff)
+    list(ix=start:end, start=start, count=count, diff=diff)
 }
 
 # make everything Latitude Longitude UTC, see getCoordNameMatch() for conversions
@@ -163,8 +166,8 @@ dataIs180 <- function(data) {
 # just holds this dataframe so i can see it / add to it easily instead of storing it as an rdata
 getCoordNameMatch <- function() {
     data.frame(
-        current = c('lon', 'long', 'lat', 'time', 'longitude', 'latitude', 'utc', 'date', 'dayofyear', 'altitude', 'depth', 'level'),
-        standard = c('Longitude', 'Longitude', 'Latitude', 'UTC', 'Longitude', 'Latitude', 'UTC', 'UTC', 'UTC', 'Depth', 'Depth', 'Depth'),
+        current = c('lon', 'long', 'lat', 'time', 'longitude', 'latitude', 'utc', 'date', 'dayofyear', 'altitude', 'depth', 'level', 'lev'),
+        standard = c('Longitude', 'Longitude', 'Latitude', 'UTC', 'Longitude', 'Latitude', 'UTC', 'UTC', 'UTC', 'Depth', 'Depth', 'Depth', 'Depth'),
         stringsAsFactors = FALSE
     )
 }
