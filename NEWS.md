@@ -1,3 +1,19 @@
+# PAMmisc 1.9.5
+
+* Fixing as.character(POSIX) errors for r-devel update
+
+# PAMmisc 1.9.4
+
+* Bug fix for bad XML files in `soundtrapQAQC`
+
+# PAMmisc 1.9.3
+
+* Pull request adding a new time format for `ncToData`
+
+* Adding logic to drop variables with no dimensions in `ncToData` and also
+deal with variables that have non-standard dimensions (default behavior is to read
+all - if you need to do something in particular with it use the `raw` option)
+
 # PAMmisc 1.9.2
 
 * Fixed a bug where error message in `matchEnvData` could cause R to crash (oh the irony)
