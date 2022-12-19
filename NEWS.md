@@ -1,3 +1,30 @@
+# PAMmisc 1.10.4
+
+* Changing `downloadEnv` timeout time to 120s. Not sure why it was set to 1200
+previously, either type or misunderstanding of units?
+
+# PAMmisc 1.10.3
+
+* Updating `addPgEvent` to work with events that have 0 detections, and also
+allow for manual setting of start/end times (useful for creating validation
+events)
+
+# PAMmisc 1.10.2
+
+* Adding some type checks for `plotPresBar` and `plotPresGrid` functions
+
+# PAMmisc 1.10.1
+
+* Adding `trainSplitPermute` function
+
+# PAMmisc 1.10.0
+
+* Adding `plotPresBar` and `plotPresGrid` plotting functions
+
+# PAMmisc 1.9.6
+
+* Updating `soundtrapQAQC` to have option for internal/external battery voltage
+
 # PAMmisc 1.9.5
 
 * Fixing as.character(POSIX) errors for r-devel update
