@@ -34,24 +34,24 @@
 #'
 #' @examples
 #' data <- data.frame(Latitude = 32, Longitude = -117,
-#'                    UTC = as.POSIXct('2000-01-01 00:00:00', tz='UTC'))
+#'                    UTC = as.POSIXct('2004-12-31 09:00:00', tz='UTC'))
 #' \dontrun{
 #' # Not run because downloads files
-#' sstEdi <- getEdinfo()[['jplMURSST41']]
-#' sstEdi <- varSelect(sstEdi, TRUE)
 #' # default calculates mean, median, and standard deviation
-#' matchEnvData(data, sstEdi)
+#' matchEnvData(data, nc='jplMURSST41', var=c('analysed_sst', 'analysis_error'))
 #' # get just mean within a buffer around coordinates
-#' matchEnvData(data, sstEdi, FUN = mean, buffer = c(.01, .01, 86400))
+#' matchEnvData(data, nc='jplMURSST41', var=c('analysed_sst', 'analysis_error'),
+#'              FUN = mean, buffer = c(.01, .01, 86400))
+#' }
 #' # Can also work from an existing nc file
-#' nc <- downloadEnv(data, sstEdi, buffer = c(.01, .01, 86400))
+#' nc <- system.file('extdata', 'sst.nc', package='PAMmisc')
 #' matchEnvData(data, nc = nc)
 #' # Using a custom function
 #' meanPlusOne <- function(x) {
 #'   mean(x, na.rm=TRUE) + 1
 #' }
 #' matchEnvData(data, nc=nc, FUN=c(mean, meanPlusOne))
-#' }
+#'
 #'
 #' @importFrom stats median sd
 #' @importFrom methods setGeneric setMethod
@@ -72,11 +72,11 @@ setMethod('matchEnvData', 'data.frame',
                    fileName = NULL, progress=TRUE, depth=0, ...) {
               # First just get an edinfo
               if(is.null(nc)) {
-                  nc <- browseEdinfo(var=var)
+                  nc <- browseEdinfo()
               }
               if(is.character(nc) &&
                  !file.exists(nc)) {
-                  nc <- try(erddapToEdinfo(nc, chooseVars = TRUE))
+                  nc <- try(erddapToEdinfo(nc, chooseVars = FALSE))
                   if(inherits(nc, 'try-error')) {
                       stop(paste0(nc, ' must be a valid nc file or erddap dataset id.'))
                   }
@@ -93,7 +93,7 @@ setMethod('matchEnvData', 'data.frame',
               # if pointing to an ncfile, just do that
               if(is.character(nc) &&
                  file.exists(nc)) {
-                  return(ncToData(data=data, nc=nc, buffer=buffer, FUN=FUN, progress=progress, depth=depth, ...))
+                  return(ncToData(data=data, nc=nc, var=var, buffer=buffer, FUN=FUN, progress=progress, depth=depth, ...))
               }
 
               if(!inherits(nc, 'edinfo')) {
@@ -101,7 +101,7 @@ setMethod('matchEnvData', 'data.frame',
               }
               if(is.null(nc$varSelect) ||
                  !any(nc$varSelect)) {
-                  nc <- varSelect(nc)
+                  nc <- varSelect(nc, var)
               }
               # browser()
               if(inherits(nc, 'hycomList')) {
@@ -148,8 +148,15 @@ setMethod('matchEnvData', 'data.frame',
                   planFiles <- vector('list', length=length(unique(plan)))
                   names(planFiles) <- unique(plan)
                   for(p in unique(plan)) {
+                      if(p == '-1') {
+                          if(progress) {
+                              pbix <- pbix + 1
+                              setTxtProgressBar(pb, value = pbix)
+                          }
+                          next
+                      }
                       thisFile <- fileNameManager(suffix=p)
-                      planFiles[[p]] <- downloadEnv(data=data[plan == p, ],fileName = thisFile, edinfo = nc, buffer = buffer)
+                      planFiles[[p]] <- downloadEnv(data=data[plan == p, ],fileName = thisFile, edinfo = nc, buffer = buffer, ...)
                       #####################################
                       on.exit({
                           tmpFiles <- list.files(hoard()$cache_path_set('PAMmisc'), full.names=TRUE)
@@ -164,7 +171,11 @@ setMethod('matchEnvData', 'data.frame',
                   }
                   result <- vector('list', length = nrow(data))
                   for(i in seq_along(result)) {
-                      result[[i]] <- ncToData(data=data[i, ], nc=planFiles[[plan[i]]], buffer=buffer, FUN=FUN, progress=FALSE, depth=depth, ...)
+                      if(plan[i] == '-1') {
+                          result[[i]] <- data[i, ]
+                          next
+                      }
+                      result[[i]] <- ncToData(data=data[i, ], nc=planFiles[[plan[i]]], var=var, buffer=buffer, FUN=FUN, progress=FALSE, depth=depth, ...)
                   }
                   if(progress) {
                       cat('\n')
@@ -181,7 +192,7 @@ setMethod('matchEnvData', 'data.frame',
               if(!grepl('\\.nc$', fileName)) {
                   fileName <- paste0(fileName, '.nc')
               }
-              ncData <- downloadEnv(data=data, edinfo = nc, fileName = fileName, buffer = buffer)
+              ncData <- downloadEnv(data=data, edinfo = nc, fileName = fileName, buffer = buffer, ...)
               # browser()
               if(length(ncData) > 1) {
                   message('Data crossed the dateline, download split into two files: ',
@@ -192,11 +203,11 @@ setMethod('matchEnvData', 'data.frame',
                   colnames(data) <- oldNames
                   dataLeft <- data[left, ]
                   dataRight <- data[!left, ]
-                  return(bind_rows(ncToData(data=dataLeft, nc=ncData[1], buffer=buffer, FUN=FUN, progress=progress, depth=depth, ...),
-                                   ncToData(data=dataRight, nc=ncData[2], buffer=buffer, FUN=FUN, progress=progress, depth=depth, ...))
+                  return(bind_rows(ncToData(data=dataLeft, nc=ncData[1], var=var, buffer=buffer, FUN=FUN, progress=progress, depth=depth, ...),
+                                   ncToData(data=dataRight, nc=ncData[2], var=var, buffer=buffer, FUN=FUN, progress=progress, depth=depth, ...))
                   )
               }
-              return(ncToData(data=data, nc=ncData, buffer=buffer, FUN=FUN, progress=progress, depth=depth, ...))
+              return(ncToData(data=data, nc=ncData, var=var, buffer=buffer, FUN=FUN, progress=progress, depth=depth, ...))
           })
 
 fillNA <- function(x, ix) {

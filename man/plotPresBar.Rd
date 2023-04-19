@@ -8,14 +8,13 @@ plotPresBar(
   x,
   start = NULL,
   end = NULL,
-  timeBin = c("day", "week", "month", "hour"),
-  type = c("presence", "density"),
-  presBin = c("hour", "day", "week", "minute"),
+  bin = "hour/day",
   by = NULL,
   title = TRUE,
   fill = "grey35",
   format = c("\%m/\%d/\%Y \%H:\%M:\%S", "\%m-\%d-\%Y \%H:\%M:\%S",
-    "\%Y/\%m/\%d \%H:\%M:\%S", "\%Y-\%m-\%d \%H:\%M:\%S")
+    "\%Y/\%m/\%d \%H:\%M:\%S", "\%Y-\%m-\%d \%H:\%M:\%S"),
+  plotTz = "UTC"
 )
 }
 \arguments{
@@ -28,17 +27,13 @@ time in \code{x}}
 \item{end}{the ending datetime of the plot, if \code{NULL} will be set to the maximum
 time in \code{x}}
 
-\item{timeBin}{the unit of time for each bar in the plot, must be one of "hour", "day",
-"week", or "month"}
-
-\item{type}{one of either "presence" or "density". If "density", then the total number of
-detections in each \code{timeBin} will be plotted. If "presence", then you must also set
-\code{presBin} to define the time scale for binning detections}
-
-\item{presBin}{one of either "hour", "day", "week", or "minute", and must be a smaller unit
-of time than \code{timeBin}. This defines the timescale for counting presence. For example,
-\code{timeBin} of "day" and \code{presBin} of "hour" will plot the number of hours in each day
-that have detections.}
+\item{bin}{string identifying how to bin detections. Acceptable time units are
+\code{c('minute', 'hour', 'day', 'week', 'month')}. For presence, \code{bin}
+should be of the form \code{'unit1/unit2'}, e.g. \code{'hour/day'} will show
+the hours per day with detections. For call density, \code{bin} is a single
+time unit, e.g. \code{'hour'} will show the number of calls per hour. Call
+density can also be specified as \code{'call/hour'}. Note that plural forms
+of all units are accepted.}
 
 \item{by}{(optional) if not \code{NULL}, specifies the name of a column in \code{x} to split and
 color the bars by}
@@ -50,6 +45,10 @@ used for the title of the plot.}
 colored by species using the default \link{ggplot2} palette}
 
 \item{format}{date format if \code{UTC} column of \code{x} is a character}
+
+\item{plotTz}{the timezone to use for plotting the data. Note that inputs must still be in UTC,
+this option allows you to create plots scaled to local time. Valid values come from
+\link{OlsonNames}}
 }
 \value{
 a ggplot2 object
@@ -61,10 +60,15 @@ Creates a bar plot of the presence or density of detections across time
 
 df <- data.frame(UTC = as.POSIXct(runif(1e2, min=0, max=7*24*3600),
                                   origin='1970-01-01 00:00:00', tz='UTC'),
-                 label = sample(letters[1:3], 1e3, replace=TRUE))
-plotPresBar(df, type='presence', timeBin='day', presBin='hour')
-plotPresBar(df, type='density', timeBin='day')
-plotPresBar(df, type='density', timeBin='day', by='label')
+                 label = sample(letters[1:3], 1e2, replace=TRUE))
+# hours per day with detections
+plotPresBar(df, bin='hour/day')
+# calls per day - these options are identical
+plotPresBar(df, bin='day')
+plotPresBar(df, bin='call/day')
+plotPresBar(df, bin='calls/day')
+# calls per day, colored by 'label'
+plotPresBar(df, bin='day', by='label')
 
 }
 \author{

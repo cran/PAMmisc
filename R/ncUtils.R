@@ -1,5 +1,7 @@
 # converts nc time dimension values to posix , either giving
 # units explicitly or just passing the whole time dimension
+#' @importFrom lubridate parse_date_time
+#'
 ncTimeToPosix <- function(vals, units) {
     # if sending the whole dimension extract bits
     if(is.list(vals) &&
@@ -7,36 +9,70 @@ ncTimeToPosix <- function(vals, units) {
         units <- vals$units
         vals <- vals$vals
     }
-    if(units == 'hours since 2000-01-01 00:00:00') {
-        return(as.POSIXct(vals * 3600, origin = '2000-01-01 00:00:00', tz='UTC'))
+    # if(is.na(vals)) {
+    #     return(vals)
+    # }
+    isNa <- is.na(vals)
+
+    if(grepl('hours? since', units, ignore.case=TRUE)) {
+        or <- gsub('hours? since ', '', units, ignore.case=TRUE)
+        or <- ymd_hms_fast(or)
+        out <- as.POSIXct(vals * 3600, origin=or, tz='UTC')
+        if(anyNA(out[!isNa])) {
+            warning('Conversion failed for units ', units)
+        }
+        return(out)
     }
-    if(units == 'seconds since 1970-01-01T00:00:00Z') {
-        return( as.POSIXct(vals, origin = '1970-01-01 00:00:00', tz='UTC'))
+    # if(units == 'hours since 2000-01-01 00:00:00') {
+    #     return(as.POSIXct(vals * 3600, origin = '2000-01-01 00:00:00', tz='UTC'))
+    # }
+    if(grepl('seconds? since', units, ignore.case=TRUE)) {
+        or <- gsub('seconds? since ', '', units, ignore.case=TRUE)
+        or <- ymd_hms_fast(or)
+        out <- as.POSIXct(vals, origin=or, tz='UTC')
+        if(anyNA(out[!isNa])) {
+            warning('Conversion failed for units ', units)
+        }
+        return(out)
     }
-    if(units == 'seconds since 1981-01-01 00:00:00') {
-        return( as.POSIXct(vals, origin = '1981-01-01 00:00:00', tz='UTC'))
-    }
+    # if(units == 'seconds since 1970-01-01T00:00:00Z') {
+    #     return( as.POSIXct(vals, origin = '1970-01-01 00:00:00', tz='UTC'))
+    # }
+    # if(units == 'seconds since 1981-01-01 00:00:00') {
+    #     return( as.POSIXct(vals, origin = '1981-01-01 00:00:00', tz='UTC'))
+    # }
     if(units == 'count') {
         return(vals)
     }
     if(units == 'posix') {
         return(vals)
     }
-    if(units == 'hours since 1950-01-01') {
-        return(as.POSIXct(vals * 3600, origin = '1950-01-01', tz='UTC'))
-    }
+    # if(units == 'hours since 1950-01-01') {
+    #     return(as.POSIXct(vals * 3600, origin = '1950-01-01', tz='UTC'))
+    # }
     stop('Dont know how to deal with time with units ', units)
+}
+
+ymd_hms_fast <- function(x) {
+    ords <- c('%Y-%m-%d %H:%M:%S',
+              '%Y-%m-%dT%H:%M:%SZ',
+              '%Y/%m/%d %H:%M:%S',
+              '%Y-%m-%dT%H:%M:%S')
+    parse_date_time(x, orders=ords, truncated=3, exact=TRUE)
 }
 
 #
 #' @importFrom lubridate yday
 #'
 dimToIx <- function(data, dim, buffer=0, verbose=TRUE) {
+    if(is.na(data)) {
+        return(list(ix=NA, start=NA, count=NA, diff=NA))
+    }
     if(!verbose) {
         return(suppressWarnings(dimToIx(data, dim, buffer, verbose=TRUE)))
     }
     if(buffer > 0) {
-        data <- c(min(data) - buffer, data, max(data) + buffer)
+        data <- c(min(data, na.rm=TRUE) - buffer, data, max(data, na.rm=TRUE) + buffer)
     }
     if(dim$name %in% c('time', 'UTC', 'dayOfYear') ||
        inherits(data, 'POSIXct')) {
@@ -157,6 +193,11 @@ dataIs180 <- function(data) {
        is.list(data)) {
         data <- data$Longitude
     }
+    isNa <- is.na(data)
+    if(all(isNa)) {
+        return(TRUE)
+    }
+    data <- data[!isNa]
     if(any(data > 180)) {
         return(FALSE)
     }
@@ -169,8 +210,14 @@ dataIs180 <- function(data) {
 # just holds this dataframe so i can see it / add to it easily instead of storing it as an rdata
 getCoordNameMatch <- function() {
     data.frame(
-        current = c('lon', 'long', 'lat', 'time', 'longitude', 'latitude', 'utc', 'date', 'dayofyear', 'altitude', 'depth', 'level', 'lev'),
-        standard = c('Longitude', 'Longitude', 'Latitude', 'UTC', 'Longitude', 'Latitude', 'UTC', 'UTC', 'UTC', 'Depth', 'Depth', 'Depth', 'Depth'),
+        current = c('lon', 'long', 'lat', 'time', 'longitude', 'latitude',
+                    'utc', 'date', 'dayofyear', 'altitude', 'depth', 'level',
+                    'lev', 'height_above_ground2', 'height_above_ground1',
+                    'time1', 'validtime6', 'validtime5', 'validtime9'),
+        standard = c('Longitude', 'Longitude', 'Latitude', 'UTC', 'Longitude', 'Latitude',
+                     'UTC', 'UTC', 'UTC', 'Depth', 'Depth', 'Depth',
+                     'Depth', 'Depth', 'Depth',
+                     'UTC', 'UTC', 'UTC', 'UTC'),
         stringsAsFactors = FALSE
     )
 }
@@ -194,10 +241,14 @@ checkLimits <- function(data, edi, replace=FALSE, verbose=TRUE) {
            identical(lim[[dim]], c(1, 365))) {
             return(dat)
         }
+        isNa <- is.na(dat[[dim]])
+        if(all(isNa)) {
+            return(dat)
+        }
         lowCheck <- dat[[dim]] >= lim[[dim]][1]
         highCheck <-  dat[[dim]] <= lim[[dim]][2]
         inLim <- lowCheck & highCheck
-        if(all(inLim)) {
+        if(all(inLim[!isNa])) {
             return(dat)
         }
         # handle replacement or not
@@ -258,8 +309,8 @@ checkDateline <- function(data) {
     names(data) <- standardCoordNames(names(data))
     data <- to180(data)
     # check diff signs, then make sure we arent around the 0 transition
-    (sign(max(data$Longitude)) != sign(min(data$Longitude))) &&
-        ((max(data$Longitude) >= 90) || (min(data$Longitude) <= -90))
+    (sign(max(data$Longitude, na.rm=TRUE)) != sign(min(data$Longitude, na.rm=TRUE))) &&
+        ((max(data$Longitude, na.rm=TRUE) >= 90) || (min(data$Longitude, na.rm=TRUE) <= -90))
 }
 
 # if buffer values are less than the individual spacing in a datset bump
@@ -311,8 +362,8 @@ nowUTC <- function() {
 
 estDownloadSize <- function(x, edi, verbose=FALSE) {
     spacing <- edi$spacing
-    nLats <- floor(diff(range(x$Latitude)) / spacing$Latitude) + 3
-    nLongs <- floor(diff(range(x$Longitude)) / spacing$Longitude) + 3
+    nLats <- floor(diff(range(x$Latitude, na.rm=TRUE)) / spacing$Latitude) + 3
+    nLongs <- floor(diff(range(x$Longitude, na.rm=TRUE)) / spacing$Longitude) + 3
     if(is.null(spacing$UTC) || is.na(spacing$UTC)) {
         nTimes <- 1
     } else {
@@ -323,7 +374,7 @@ estDownloadSize <- function(x, edi, verbose=FALSE) {
     } else {
         if('Depth' %in% colnames(x) &&
            edi$source != 'hycom') {
-            nDepths <- floor(diff(range(x$Depth)) / spacing$Depth) + 3
+            nDepths <- floor(diff(range(x$Depth, na.rm=TRUE)) / spacing$Depth) + 3
         } else {
             nDepths <- floor(diff(edi$limits$Depth) / spacing$Depth) + 3
         }
@@ -339,15 +390,35 @@ planDownload <- function(x, edi, last=0, thresh=50) {
     if(nrow(x) == 1) {
         return(last + 1)
     }
+    # hycom requests to only subset 1 day at a time, doing that here
+    if(edi$source == 'hycom') {
+        # x$dayDiff <- 0
+        x$dayDiff <- as.numeric(difftime(x$UTC, min(x$UTC), units='days'))
+        x$dayDiff <- floor(x$dayDiff)
+        days <- unique(x$dayDiff)
+        if(length(days) > 1) {
+            out <- rep(NA, nrow(x))
+            for(d in days) {
+                out[x$dayDiff == d] <- planDownload(x[x$dayDiff == d, ], edi, last, thresh)
+                if(!all(is.na(out))) {
+                    last <- max(out, na.rm=TRUE)
+                }
+            }
+            out[is.na(out)] <- -1
+            return(out)
+        }
+    }
     estSize <- estDownloadSize(x, edi)
     if(estSize$size <= thresh) {
         return(rep(last + 1, nrow(x)))
     }
-    whichLow <- x[[estSize$biggest]] <= mean(range(x[[estSize$biggest]]))
-    lows <- planDownload(x[whichLow, ], edi, last, thresh)
-    highs <- planDownload(x[!whichLow, ], edi, max(lows), thresh)
+    whichLow <- x[[estSize$biggest]] <= mean(range(x[[estSize$biggest]], na.rm=TRUE))
+    isNa <- is.na(whichLow)
+    lows <- planDownload(x[whichLow & !isNa, ], edi, last, thresh)
+    highs <- planDownload(x[!whichLow & !isNa, ], edi, max(lows), thresh)
     out <- rep(NA, nrow(x))
-    out[whichLow] <- lows
-    out[!whichLow] <- highs
+    out[whichLow & !isNa] <- lows
+    out[!whichLow & !isNa] <- highs
+    out[isNa] <- -1
     out
 }

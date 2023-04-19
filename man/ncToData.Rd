@@ -7,13 +7,15 @@
 ncToData(
   data,
   nc,
+  var = NULL,
   buffer = c(0, 0, 0),
   FUN = c(mean),
   raw = FALSE,
   keepMatch = TRUE,
   progress = TRUE,
   depth = 0,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 )
 }
 \arguments{
@@ -21,6 +23,9 @@ ncToData(
 variables from the netcdf file}
 
 \item{nc}{name of a netcdf file}
+
+\item{var}{(optional) character vector of variable names to match. If \code{NULL}, all
+variables present in \code{nc} will be used}
 
 \item{buffer}{vector of Longitude, Latitude, and Time (seconds) to buffer around
 each datapoint. All values within the buffer will be used to report the mean,
@@ -45,6 +50,8 @@ Variables will be summarised over the range of these depth values. \code{NULL}
 uses all available depth values}
 
 \item{verbose}{logical flag to show warning messages for possible coordinate mismatch}
+
+\item{\dots}{not used}
 }
 \value{
 original dataframe with three attached columns for each variable in the netcdf

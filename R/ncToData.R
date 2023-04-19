@@ -6,6 +6,8 @@
 #' @param data dataframe containing Longitude, Latitude, and UTC to extract matching
 #'   variables from the netcdf file
 #' @param nc name of a netcdf file
+#' @param var (optional) character vector of variable names to match. If \code{NULL}, all
+#'   variables present in \code{nc} will be used
 #' @param buffer vector of Longitude, Latitude, and Time (seconds) to buffer around
 #'   each datapoint. All values within the buffer will be used to report the mean,
 #'   median, and standard deviation
@@ -23,6 +25,7 @@
 #'   Variables will be summarised over the range of these depth values. \code{NULL}
 #'   uses all available depth values
 #' @param verbose logical flag to show warning messages for possible coordinate mismatch
+#' @param \dots not used
 #'
 #' @return original dataframe with three attached columns for each variable in the netcdf
 #'   file, one for each of mean, median, and standard deviation of all values within the buffer
@@ -50,13 +53,17 @@
 #'
 #' @export
 #'
-ncToData <- function(data, nc, buffer = c(0,0,0), FUN = c(mean),
-                     raw = FALSE, keepMatch=TRUE, progress=TRUE, depth=0, verbose=TRUE) {
+ncToData <- function(data, nc, var=NULL, buffer = c(0,0,0), FUN = c(mean),
+                     raw = FALSE, keepMatch=TRUE, progress=TRUE, depth=0, verbose=TRUE, ...) {
     nc <- nc_open(nc)
     on.exit(nc_close(nc))
     nc <- romsCheck(nc)
     oldNames <- colnames(data)
     colnames(data) <- standardCoordNames(oldNames)
+    # if(all(is.na(data$Longitude)) ||
+    #    all(is.na(data$Latitude))) {
+    #     return(data)
+    # }
     # this finds the name of the longitude coordinate from my list that matches lon/long/whatever to Longitude
     nc180 <- ncIs180(nc)
     data180 <- dataIs180(data)
@@ -72,7 +79,24 @@ ncToData <- function(data, nc, buffer = c(0,0,0), FUN = c(mean),
     nDim <- lapply(nc$var, function(v) v$ndim)
     dropVar <- c(dropVar, names(nc$var)[which(nDim == 0)])
     varNames <- names(nc$var)[!(names(nc$var) %in% dropVar)]
-    names(nc$dim) <- standardCoordNames(names(nc$dim))
+    if(!is.null(var)) {
+        hasVar <- var %in% varNames
+        if(!any(hasVar)) {
+            stop('None of the desired variables (',
+                 paste0(var, collapse=','),
+                 ') were present in the NC file.')
+        }
+        if(!all(hasVar)) {
+            warning('Some of the desired variables (',
+                    paste0(var[!hasVar], collapse=','),
+                    ') were missing from the NC file.')
+        }
+        varNames <- var[hasVar]
+    }
+    usedDim <- unique(unlist(sapply(nc$var, function(x) x$dimids+1)))
+    usedDim <- usedDim[!is.na(usedDim)]
+    names(nc$dim)[usedDim] <- standardCoordNames(names(nc$dim)[usedDim])
+
     if('Depth' %in% names(nc$dim)) {
         matchDims <- c('matchLong', 'matchLat', 'matchTime', 'matchDepth')
     } else {
@@ -144,7 +168,7 @@ ncToData <- function(data, nc, buffer = c(0,0,0), FUN = c(mean),
         }
         if(!is.null(data$matchTime_mean) &&
            !(all(is.na(data$matchTime_mean))) &&
-           max(abs(data$matchTime_mean)) > 365) {
+           max(abs(data$matchTime_mean), na.rm=TRUE) > 365) {
             data$matchTime_mean <- as.POSIXct(data$matchTime_mean, origin = '1970-01-01 00:00:00', tz='UTC')
         }
     }
@@ -158,10 +182,13 @@ getVarData <- function(data, nc, var, buffer, depth=NULL, verbose=TRUE) {
     xIx <- dimToIx(data$Longitude, nc$dim$Longitude, buffer[1], verbose)
     yIx <- dimToIx(data$Latitude, nc$dim$Latitude, buffer[2], verbose)
     hasT <- 'UTC' %in% names(nc$dim)
-    if(hasT) {
+    multiT <- sum(names(nc$dim) == 'UTC') > 1
+    if(hasT &&
+       !multiT) {
         tIx <- dimToIx(data$UTC, nc$dim$UTC, buffer[3], verbose)
         tVals <- ncTimeToPosix(nc$dim$UTC$vals[tIx$ix], units = nc$dim$UTC$units)
-    } else {
+    }
+    if(!hasT) {
         tVals <- NA
     }
     hasZ <- 'Depth' %in% names(nc$dim)
@@ -180,11 +207,29 @@ getVarData <- function(data, nc, var, buffer, depth=NULL, verbose=TRUE) {
             zVals <- nc$dim$Depth$vals[zIx$ix]
         }
     }
-    result <- vector('list', length = length(var) + 3)
-    names(result) <- c(var, 'matchLong', 'matchLat', 'matchTime')
+    result <- vector('list', length = length(var) + 3 + hasZ)
+    outNames <- c(var, 'matchLong', 'matchLat', 'matchTime')
+    if(hasZ) {
+        outNames <- c(outNames, 'matchDepth')
+    }
+    names(result) <- outNames
+    checkNa <- c(xIx$start, xIx$count, yIx$start, yIx$count)
+    if(hasT) {
+        checkNa <- c(checkNa, tIx$start, tIx$count)
+    }
+    if(hasZ) {
+        checkNa <- c(checkNa, zIx$start, zIx$count)
+    }
+    if(any(is.na(checkNa))) {
+        for(r in seq_along(result)) {
+            result[[r]] <- NA
+        }
+        return(result)
+    }
     for(v in var) {
         thisVar <- nc[['var']][[v]]
-        thisDim <- names(nc$dim)[thisVar$dimids+1]
+        thisDimId <- thisVar$dimids+1
+        thisDim <- names(nc$dim)[thisDimId]
         start <- numeric(0)
         count <- numeric(0)
         # build start/count vectors. Typically in XYZT order, but occasionally there
@@ -204,6 +249,11 @@ getVarData <- function(data, nc, var, buffer, depth=NULL, verbose=TRUE) {
                        count <- c(count, zIx$count)
                    },
                    'UTC' = {
+                       if(multiT) {
+                           tIx <- dimToIx(data$UTC, nc$dim[[thisDimId[d]]], buffer[3], verbose)
+                           tVals <- ncTimeToPosix(nc$dim[[thisDimId[d]]]$vals[tIx$ix],
+                                              units = nc$dim[[thisDimId[d]]]$units)
+                       }
                        start <- c(start, tIx$start)
                        count <- c(count, tIx$count)
                    },

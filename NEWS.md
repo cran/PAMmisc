@@ -1,3 +1,50 @@
+# PAMmisc 1.11.4
+
+* Dealing with NA coordinate values for enviro functions
+
+# PAMmisc 1.11.3
+
+* Fixing `readSpecAnno` if no rows in anno table
+
+* `plotPresBar` and `plotPresGrid` added `plotTz` option to control timezone
+of output
+
+# PAMmisc 1.11.2
+
+* Added `by` argument to `plotPresGrid` that will either overlay colors
+with an alpha value or split graphs with `facet_wrap`
+
+* Removed `data.table` dependency and changed `viridisLite` to `scales`
+
+# PAMmisc 1.11.1
+
+* Changed `plotPresGrid` and `plotPresBar` arguments to be more intuitive.
+Both now just use `bin` for the binning, and `plotPresBar` can be specified
+as `hours/day` instead of having to remember which was which. 
+
+* Updates to `ncToData` to allow more flexible time specification. Should
+work with a larger variety of netcdf files with more arbitrary time specs
+
+# PAMmisc 1.11.0
+
+* Added `getFigshareInfo` function
+
+* Dropped `stringr` dependency (was only using `str_trim` before)
+
+# PAMmisc 1.10.6
+
+* `matchEnvData` can now set timeout length with `timeout` arg
+
+* `createSSP` has new args `progress` and `...` to pass to `matchEnvData`
+
+# PAMmisc 1.10.5
+
+* Bug fix so that environmental data functions work properly with NA values 
+(they are just not matched, previously would error)
+
+* Change to `varSelect`, `ncToData`, and `matchEnvData` to be able to use
+variable names in `var` argument to select without interaction
+
 # PAMmisc 1.10.4
 
 * Changing `downloadEnv` timeout time to 120s. Not sure why it was set to 1200
