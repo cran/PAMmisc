@@ -87,7 +87,7 @@ dimToIx <- function(data, dim, buffer=0, verbose=TRUE) {
         }
     }
     # prob want to keep actual distance?
-    ix <- sapply(data, function(x) which.min(abs(dim$vals - x)))
+    ix <- sapply(data, function(x) which.min(round(abs(dim$vals - x), 5)))
     # start <- which.min(abs(dim$vals - (min(data) - buffer)))
     diff <- abs(data - dim$vals[ix])
     # get start and count values for te ncvar_get call
@@ -288,16 +288,23 @@ checkLimits <- function(data, edi, replace=FALSE, verbose=TRUE) {
     to180(data, inverse = !data180)
 }
 
+#' @importFrom tools R_user_dir
+#' 
+getTempCacheDir <- function(create=TRUE) {
+  tempDir <- R_user_dir("PAMscapes", which = "cache")
+  if(create &&
+     !dir.exists(tempDir)) {
+    dir.create(tempDir, recursive=TRUE)
+  }
+  tempDir
+}
+
 # does creating of temp directories/files if you need, adds a suffix to a file
 # if you need
-#' @importFrom hoardr hoard
 #'
 fileNameManager <- function(fileName=NULL, suffix=NULL) {
     if(is.null(fileName)) {
-        tempDir <- hoard()$cache_path_set('PAMmisc')
-        if(!dir.exists(tempDir)) {
-            dir.create(tempDir, recursive = TRUE)
-        }
+        tempDir <- getTempCacheDir(create=TRUE)
         fileName <- paste0(tempDir, '/TEMPFILE.nc')
     }
     if(!is.null(suffix)) {
@@ -391,6 +398,7 @@ estDownloadSize <- function(x, edi, verbose=FALSE) {
 }
 
 planDownload <- function(x, edi, last=0, thresh=50) {
+    colnames(x) <- standardCoordNames(colnames(x))
     if(nrow(x) == 1) {
         return(last + 1)
     }

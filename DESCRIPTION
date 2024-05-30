@@ -1,6 +1,6 @@
 Package: PAMmisc
 Title: Miscellaneous Functions for Passive Acoustic Analysis
-Version: 1.11.6
+Version: 1.12.0
 Authors@R: c(
   TS = person("Taiki", "Sakai", email = "taiki.sakai@noaa.gov", role = c("aut", "cre")),
   JB = person("Jay", "Barlow", role = c("ctb")),
@@ -12,18 +12,19 @@ Description: A collection of miscellaneous functions for passive acoustics.
 License: GNU General Public License
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 Imports: ggplot2, tuneR, seewave, dplyr, magrittr, RcppRoll,
         PamBinaries, RSQLite, lubridate, rerddap, ncdf4, httr, purrr,
-        xml2, hoardr, methods, geosphere, tcltk, scales, suncalc, rjson
+        xml2, methods, geosphere, tcltk, scales, suncalc, rjson, fftw,
+        signal
 Suggests: testthat
-Depends: R (>= 2.10)
+Depends: R (>= 3.50)
 NeedsCompilation: no
-Packaged: 2023-08-16 20:35:31 UTC; tnsak
+Packaged: 2024-05-30 05:42:44 UTC; tnsak
 Author: Taiki Sakai [aut, cre],
   Jay Barlow [ctb],
   Julie Oswald [ctb],
   Val Schmidt [ctb]
 Maintainer: Taiki Sakai <taiki.sakai@noaa.gov>
 Repository: CRAN
-Date/Publication: 2023-08-16 21:34:34 UTC
+Date/Publication: 2024-05-30 06:20:02 UTC

@@ -1,3 +1,29 @@
+# PAMmisc 1.12.0
+
+* adding `findEchoTimes` function and tests for DCLDE workshop
+
+# PAMmisc 1.11.11
+
+* Make a wish! Dropping `hoardr` dependency because defaults go against CRAN
+wishes on MacOS
+
+# PAMmisc 1.11.10
+
+* Bug fix where `erddapToEdInfo` was crashing instead of working through
+the server list
+
+# PAMmisc 1.11.9
+
+* Minor adjustments to various NC functions for HYCOM project
+
+# PAMmisc 1.11.8
+
+* Added required column error messages for `matchEnvData` functinos
+
+# PAMmisc 1.11.7
+
+* `alpha` wasn't working for `plotPresGrid` single color plots
+
 # PAMmisc 1.11.6
 
 * Safer fail case in `peakTrough`

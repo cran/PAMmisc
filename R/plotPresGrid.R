@@ -135,6 +135,10 @@ plotPresGrid <- function(x, start=NULL, end=NULL,
     type <- match.arg(type)
     if(type == 'presence') {
         if(is.null(by)) {
+            # default .5 appropriate for multi-color
+            if(missing(alpha)) {
+                alpha <- 1
+            }
             x <- select(x, all_of(c('plot_min', 'plot_max', 'day'))) %>%
                 distinct()
             g <- g +
@@ -142,7 +146,7 @@ plotPresGrid <- function(x, start=NULL, end=NULL,
                                       xmax=.data$plot_max,
                                       ymin=.data$day,
                                       ymax=.data$day + period(1, 'day')),
-                          fill=fill, col=color)
+                          alpha=alpha, fill=fill, col=color)
         } else {
             x <- select(x, all_of(c('plot_min', 'plot_max', 'day', by))) %>%
                 distinct()
