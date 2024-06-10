@@ -1,6 +1,6 @@
-4a8699f12281f8f58ca853d6403fd87b *DESCRIPTION
+e864101d2ddcf2b0e1f429cb95aec2bc *DESCRIPTION
 eb95bfded44677447d0321e11974cb06 *NAMESPACE
-36cca53eda2115d503c897134e685408 *NEWS.md
+1e1c62f7233d727f24ea2a92ffe6eea2 *NEWS.md
 8dd1cfbae0a85f86aa4ea6c267cfcb4a *R/addPgAnno.R
 44b225b13462f096d85cd412d1d33bf5 *R/addPgEvent.R
 85c42bf134ba276d7c00b6db278a9412 *R/addPgGps.R
@@ -31,7 +31,7 @@ f3f9a26835a1c77af1824693454cfe1d *R/straightPath.R
 9ea0a96d7027590ff51f940eb47de601 *R/trainSplitPermute.R
 9bd15bfc8ec50e2c782809bcf8bfeb26 *R/updateUID.R
 2daa4e50e0bfcb6370cef012bfede5f2 *R/varSelect.R
-794083c723d165c77d855f12afa9628c *R/wignerTransform.R
+55486bc966d2f493249dc0b068f71448 *R/wignerTransform.R
 c59512fea299b1d5336f6d80fd271656 *R/writeAMWave.R
 855bc82dbcc10ef42e39d894f611cd9e *R/writeClickWave.R
 626e27602fc245d646199bc421bb6e59 *README.md
