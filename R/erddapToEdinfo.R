@@ -35,6 +35,24 @@ erddapToEdinfo <- function(dataset,
                                      'https://erddap.sensors.ioos.us/erddap'),
                            chooseVars = TRUE) {
     if(is.character(dataset)) {
+        if(tolower(dataset) == 'hycom') {
+            result <- PAMmisc::hycomList
+            if(isTRUE(chooseVars)) {
+                result <- varSelect(result)
+            } else if(is.character(chooseVars)) {
+                result <- varSelect(result, chooseVars)
+            }
+            return(result)
+        }
+        if(dataset %in% names(PAMmisc::hycomList$list)) {
+            result <- PAMmisc::hycomList$list[[dataset]]
+            if(isTRUE(chooseVars)) {
+                result <- varSelect(result)
+            } else if(is.character(chooseVars)) {
+                result <- varSelect(result, chooseVars)
+            }
+            return(result)
+        }
         if(grepl('^GLB.{4,6}/expt', dataset)) {
             return(hycomToEdinfo(dataset=dataset, chooseVars=chooseVars))
         }
@@ -72,6 +90,9 @@ erddapToEdinfo <- function(dataset,
         hdr <- dim[1, 'value']
         hdr <- gsub(' ', '', hdr)
         hdr <- strsplit(hdr, ',')[[1]]
+        if(length(hdr) == 0) {
+            hdr <- ''
+        }
         hasAvg <- sapply(hdr, function(x) grepl('averageSpacing', x))
         if(any(hasAvg) &&
            dim[dim$attribute_name == 'ioos_category', 'value'] != 'Time') {
@@ -79,11 +100,16 @@ erddapToEdinfo <- function(dataset,
         } else {
             hdr <- hdr[sapply(hdr, function(x) grepl('nValues', x))]
             nVals <- as.numeric(gsub('nValues=', '', hdr))
+            if(length(nVals) == 0) {
+                nVals <- 0
+            }
             if(nVals == 1) {
                 spacing <- NA
             } else if(dim[dim$attribute_name == 'ioos_category', 'value'] == 'Time') {
                 val <- ncTimeToPosix(val, dim[dim$attribute_name == 'units', 'value'])
-                spacing <- as.double(diff(val), units='secs')/(nVals-1)
+                spacing <- ifelse(nVals == 0, NA, as.double(diff(val), units='secs')/(nVals-1))
+            } else if(nVals == 0) {
+                spacing <- NA # unsure about this
             } else {
                 spacing <- diff(val)/(nVals-1)
             }
@@ -131,10 +157,21 @@ hycomToEdinfo <- function(dataset='GLBy0.08/expt_93.0',
     xmlUrl <- paste0(baseurl, 'grid/', dataset, '/dataset.xml')
     xml <- read_xml(xmlUrl)
     axis <- xml_find_all(xml, 'axis')
-    axText <- xml_find_all(axis, 'values') %>%  xml_contents() %>% xml_text() %>% strsplit(' ')
+    # axText <- xml_find_all(axis, 'values') %>%  xml_contents() %>% xml_text() %>% strsplit(' ')
+    axText <- strsplit(
+        xml_text(
+            xml_contents(
+                xml_find_all(axis, 'values')
+            )
+        ),
+        ' '
+    )
     coordNames <- xml_attr(axis, 'name')
     if(length(axText) != length(axis)) {
-        time <- xml_find_all(axis, 'values[@start]') %>% xml_attrs()
+        # time <- xml_find_all(axis, 'values[@start]') %>% xml_attrs()
+        time <- xml_attrs(
+            xml_find_all(axis, 'values[@start]')
+        )
         time <- time[[1]]
         if(!all(c('start', 'increment', 'npts') %in% names(time))) {
             warning('Cant parse XML for dataset ', dataset)
@@ -169,7 +206,11 @@ hycomToEdinfo <- function(dataset='GLBy0.08/expt_93.0',
                 diff(range(axText[[i]])) / (length(axText[[i]]) - 1)
             }
     }
-    varNames <- xml_find_all(xml, 'gridSet/grid') %>% xml_attr('name')
+    # varNames <- xml_find_all(xml, 'gridSet/grid') %>% xml_attr('name')
+    varNames <- xml_attr(
+        xml_find_all(xml, 'gridSet/grid'),
+        'name'
+    )
     result <- list(base = baseurl,
                    dataset = dataset,
                    fileType = 'netcdf4',

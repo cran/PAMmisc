@@ -1,4 +1,20 @@
-# PAMmics 1.12.1
+# PAMmisc 1.12.3
+
+* Adding `nc='HYCOM'` option to make it easier to specify that you want
+to (try) to get to HYCOM data from `matchEnvData`
+
+# PAMmisc 1.12.2
+
+* `matchEnvData` and `ncToData` were really slow in some cases, up
+to 30x faster now in some cases
+
+* Merging in `fastReadWave` C-based wav file reading function. Must faster
+than current alternatives, based on the not-always-working `audio::load.wave`
+but with improvements
+
+* Added `pwelch` apparently
+
+# PAMmisc 1.12.1
 
 * Fixing `wignerTransform` bug introduced in 1.12.0
 

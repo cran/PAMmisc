@@ -40,7 +40,8 @@
 #'
 #' @export
 #'
-soundtrapQAQC <- function(dir, outDir=NULL, xlim=NULL, label=NULL, voltSelect = c('internal', 'external'), plot=TRUE) {
+soundtrapQAQC <- function(dir, outDir=NULL, xlim=NULL, label=NULL,
+                          voltSelect = c('internal', 'external'), plot=TRUE) {
     if(!is.null(outDir) &&
        !dir.exists(outDir)) {
         dir.create(outDir)
@@ -57,15 +58,7 @@ soundtrapQAQC <- function(dir, outDir=NULL, xlim=NULL, label=NULL, voltSelect = 
     } else {
         stop('"dir" must be length 1 or 3.')
     }
-    xmlInfo <- bind_rows(lapply(xmlFiles, function(x) {
-        result <- doOneQAQC(x, voltSelect)
-        if(is.null(result)) {
-            return(NULL)
-        }
-        result$xmlName <- basename(x)
-        result
-    }))
-    # xmlInfo$xmlName <- basename(xmlFiles)
+    xmlInfo <- processSoundtrapLogs(xmlFiles, voltSelect)
     sudInfo <- data.frame(sudName=basename(sudFiles),
                           sudSize = sapply(sudFiles, file.size))
     wavInfo <- data.frame(wavName=basename(wavFiles),
@@ -127,8 +120,8 @@ doQAQCPlot <- function(x, outDir=NULL, xlim=NULL, label=NULL, voltSelect=c('inte
         png(filename=file.path(outDir, paste0(label, '_GAPS.png')), width=6, height=4, res=300, units='in')
     }
     # Time gap plot
-    gap <- xmlInfo$startUTC[2:nrow(xmlInfo)] - xmlInfo$endUTC[1:(nrow(xmlInfo)-1)]
-    plot(x=xmlInfo$startUTC[1:(nrow(xmlInfo)-1)], y=gap/3600,
+    fileGap <- xmlInfo$startUTC[2:nrow(xmlInfo)] - xmlInfo$endUTC[1:(nrow(xmlInfo)-1)]
+    plot(x=xmlInfo$startUTC[1:(nrow(xmlInfo)-1)], y=fileGap/3600,
          ylab='Hours', xaxt='n', xlab='', col='darkblue')
     axis.POSIXct(1, x=xlim, format='%b-%d')
     title('Time gap between files')
@@ -175,13 +168,19 @@ doQAQCPlot <- function(x, outDir=NULL, xlim=NULL, label=NULL, voltSelect=c('inte
     title('SampTimePeriod - (DateStop - DateStart)')
     # 7 samp Gap plot
     par(mar=c(5.1, 4.1, 3.1, 2.1))
+    if(all(is.na(xmlInfo$gap))) {
+        xmlInfo$gap <- 0
+        sampGapTitle <- 'Cumulative Sampling Gap (ALL WERE "NA")'
+    } else {
+        sampGapTitle <- 'Cumulative Sampling Gap'
+    }
     plot(x=xmlInfo$startUTC, y=xmlInfo$gap*1e-6,
          ylab='Seconds', type='l', col='darkblue', xlim=xlim, xaxt='n', xlab='')
     axis.POSIXct(1, x=xlim, format='%b-%d')
-    title('Cumulative Sampling Gap')
+    title(sampGapTitle)
     # 8 file gap plot
 
-    plot(x=xmlInfo$startUTC[1:(nrow(xmlInfo)-1)], y=gap,
+    plot(x=xmlInfo$startUTC[1:(nrow(xmlInfo)-1)], y=fileGap,
          ylab='Seconds', type='l', col='darkblue', xlim=xlim, xaxt='n', xlab='')
     axis.POSIXct(1, x=xlim, format='%b-%d')
     title('Gaps between files')
@@ -200,11 +199,22 @@ modelToVoltSelect <- function(x) {
     'internal'
 }
 
-doOneQAQC <- function(xml, voltSelect=c('internal', 'external')) {
-    if(is.character(xml)) {
-        tryXml <- try(read_xml(xml))
+#' @export
+#' @rdname soundtrapQAQC
+#'
+processSoundtrapLogs <- function(dir, voltSelect=c('internal', 'external')) {
+    if(is.character(dir)) {
+        if(length(dir) == 1 && dir.exists(dir)) {
+            dir <- list.files(dir, pattern='xml$', full.names=TRUE)
+        }
+        if(length(dir) > 1) {
+            return(
+                bind_rows(lapply(dir, processSoundtrapLogs, voltSelect=voltSelect))
+            )
+        }
+        tryXml <- try(read_xml(dir))
         if(inherits(tryXml, 'try-error')) {
-            warning('Unable to read file ', xml)
+            warning('Unable to read file ', dir)
             return(NULL)
         }
         xml <- tryXml
@@ -222,8 +232,8 @@ doOneQAQC <- function(xml, voltSelect=c('internal', 'external')) {
         voltSelect <- modelToVoltSelect(result$model)
     }
     voltNode <- switch(match.arg(voltSelect),
-        'internal' = '//INT_BATT',
-        'external' = '//EX_BATT'
+                       'internal' = '//INT_BATT',
+                       'external' = '//EX_BATT'
     )
     startNode <- xml_find_all(xml, '//@SamplingStartTimeUTC')
     if(length(startNode) > 0) {
@@ -243,6 +253,20 @@ doOneQAQC <- function(xml, voltSelect=c('internal', 'external')) {
         result$batt <- as.numeric(gsub(' ', '', as.character(xml_contents(battNode)))) * .001
     } else {
         result$batt <- NA
+    }
+    # voltSelect internal or external, change to //INT_BATT
+    intBattNode <- xml_find_all(xml, '//INT_BATT')
+    if(length(intBattNode) > 0) {
+        result$intBatt <- as.numeric(gsub(' ', '', as.character(xml_contents(intBattNode)))) * .001
+    } else {
+        result$intBatt <- NA
+    }
+    # voltSelect internal or external, change to //INT_BATT
+    extBattNode <- xml_find_all(xml, '//EX_BATT')
+    if(length(extBattNode) > 0) {
+        result$extBatt <- as.numeric(gsub(' ', '', as.character(xml_contents(extBattNode)))) * .001
+    } else {
+        result$extBatt <- NA
     }
     tempNode <- xml_find_all(xml, '//TEMPERATURE')
     if(length(tempNode) > 0) {
@@ -268,9 +292,17 @@ doOneQAQC <- function(xml, voltSelect=c('internal', 'external')) {
     } else {
         result$sampleCount <- NA
     }
+    result$fileName <- basename(dir)
+    result$fileTime <- stFileToPosix(dir)
     result
 }
 
 stToPosix <- function(x) {
     parse_date_time(x, orders=c('%Y-%m-%dT%H:%M:%S', '%m/%d/%Y %I:%M:%S %p'), tz='UTC', exact=TRUE)
+}
+
+stFileToPosix <- function(x) {
+    x <- basename(x)
+    format <- '%y%m%d%H%M%S'
+    as.POSIXct(gsub('(.*\\.)([0-9]{12})\\..*$', '\\2', x), format=format, tz='UTC')
 }
