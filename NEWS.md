@@ -1,3 +1,15 @@
+# PAMmisc 1.12.4
+
+* `fastReadWave` with `header=TRUE` was not properly closing file connections
+
+* `matchEnvData` and `ncToData` were not returning failed files properly
+when `raw=TRUE`
+
+* Adding `window` option to `pwelch`
+
+* Allowing `downloadEnv`, `matchEnvData`, `erddapToEdinfo`, and `ncToData` to
+work with certain stationary Tabledap datasets (previously only griddap)
+
 # PAMmisc 1.12.3
 
 * Adding `nc='HYCOM'` option to make it easier to specify that you want
