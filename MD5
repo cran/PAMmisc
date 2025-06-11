@@ -1,9 +1,9 @@
-e844f5a5c24b1c07bf484c58a94d3b13 *DESCRIPTION
+b64c61bb274178cac40b5515275160e2 *DESCRIPTION
 ea6849ac88541a7326ee65ac9c331e51 *NAMESPACE
-2c7dc5b7548262fec37efd0d50a09115 *NEWS.md
+e231bb40ba14a56f8b6c8239eb033d77 *NEWS.md
 2791afdd6ad957dd9083eace3b597452 *R/PAMmisc-package.R
 8dd1cfbae0a85f86aa4ea6c267cfcb4a *R/addPgAnno.R
-44b225b13462f096d85cd412d1d33bf5 *R/addPgEvent.R
+83e91eb672296fa01092b5f511a1d50a *R/addPgEvent.R
 85c42bf134ba276d7c00b6db278a9412 *R/addPgGps.R
 599bf694f8356bb67d2deb43f0234ee2 *R/browseEdinfo.R
 bbcbbb3088386c4ddb40bc3f77397a6f *R/createSSP.R
@@ -24,7 +24,7 @@ b0636bae71ae3e36552b72e64bf7b21f *R/matchEnvData.R
 8028a719db04203c49ae5801ba49a92d *R/peakTrough.R
 e22cd3250d4ed837adb40f9c458cd3b8 *R/plotPresBar.R
 212f38a1f5f029544fe206f36353351e *R/plotPresGrid.R
-78ac2ad596f659773f71dbdb83b9f031 *R/pwelch.R
+0c48262b7ec305d4077388cef2b4bcdc *R/pwelch.R
 2246477ec11ff53ebe752812f3e0a1fb *R/raytrace.R
 7a5a91bb91e0bed3d03f28ce522f4aac *R/readGPXTrack.R
 f5a6e4a99ddbfd4d97ccb1db3f28b738 *R/readSpecAnno.R
