@@ -1,6 +1,6 @@
-ab0c026bf7a5662a0668efafcecac111 *DESCRIPTION
+00a9443cc24947bc187a322d08492080 *DESCRIPTION
 ea6849ac88541a7326ee65ac9c331e51 *NAMESPACE
-b82932afba2548b005f52c5fc50f4a0a *NEWS.md
+1dc20a3ac5e2cf16cf3623a5c48a649d *NEWS.md
 2791afdd6ad957dd9083eace3b597452 *R/PAMmisc-package.R
 8dd1cfbae0a85f86aa4ea6c267cfcb4a *R/addPgAnno.R
 83e91eb672296fa01092b5f511a1d50a *R/addPgEvent.R
@@ -85,7 +85,7 @@ c97340cf2552519d6f213fe9bd602bf4 *man/updateUID.Rd
 bdf8518d2312e82324828a5b8a79b6df *man/wignerTransform.Rd
 bba869a535a5bbb45d74d3c346c1ba81 *man/writeAMWave.Rd
 b5d801a56a033ba2d0712c5b1cdb73af *man/writeClickWave.Rd
-df0df3e72d84094479c75560bf257b8e *src/file.c
+250619933a030176080efc56cc6c2b76 *src/file.c
 ae9762fb3a4a8ef7a057179328b9ccd2 *src/init.c
 c0eb7b1ce12c8fbab0eb8839b3ab17e5 *tests/testthat.R
 df665cfe71954031e8d6bfb08b558972 *tests/testthat/test-echoes.R

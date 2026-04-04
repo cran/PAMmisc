@@ -103,6 +103,7 @@ SEXP load_wave_file(SEXP src, SEXP from, SEXP to, SEXP header)
                 Rf_error("incomplete file 1");
             }
             to_go -= n;
+            
             if (!memcmp(rc.rci, "fmt ", 4)) { /* format chunk */
                     if (to_go < 16) {
                         fclose(f);
@@ -116,12 +117,15 @@ SEXP load_wave_file(SEXP src, SEXP from, SEXP to, SEXP header)
                 }
                 to_go -= n;
                 has_fmt = 1;
+                if(fmt.len == 40) { /*skipping extensible formatting bits */
+                    to_go -= 24;
+                    fseek(f, 24, SEEK_CUR);
+                }
             } else if (!memcmp(rc.rci, "data", 4)) {
 
                 unsigned int samples = rc.len;
                 unsigned int st = 1;
 
-                double *d;
                 if (!has_fmt) {
                     fclose(f);
                     Rf_error("data chunk without preceeding format chunk");
@@ -164,8 +168,17 @@ SEXP load_wave_file(SEXP src, SEXP from, SEXP to, SEXP header)
                 fseek(f, from_samp * st, SEEK_CUR);
 
                 res = Rf_allocVector(REALSXP, samples);
-                n = fread(d = REAL(res), st, samples, f);
-                
+                double *d = REAL(res);
+                // n = fread(d = REAL(res), st, samples, f);
+                /*cloud was crashing on big reads, work around to read in 2 chunks */
+                if(samples < 536870912) {
+                    n = fread(d, st, samples, f);
+                } else {
+                    int n1 = fread(d, st, 536870912, f);
+                    double* ptr2 = d + 536870912/8*st;
+                    int n2 = fread(ptr2, st, samples - 536870912, f);
+                    n = n1 + n2;
+                }
                 n_samples = n;
                 if (n < samples) {
                     // res.resize(n);
@@ -212,6 +225,7 @@ SEXP load_wave_file(SEXP src, SEXP from, SEXP to, SEXP header)
                 else
                     to_go -= n;
             } else { /* skip any chunks we don't know */
+
 				if (rc.len > to_go || fseek(f, rc.len, SEEK_CUR)) {
 					fclose(f);
 					Rf_error("incomplete file 4");
